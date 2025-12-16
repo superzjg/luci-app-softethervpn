@@ -67,9 +67,9 @@ jobs:
             dl
           key: sdk-${{ matrix.arch }}-${{ matrix.sdk }}
           
-      # - name: 强制设置脚本权限
-      #   run: |
-      #     chmod 0755 luci-app-softethervpn/root/etc/init.d/luci_softethervpnserver
+      - name: 强制设置脚本权限
+        run: |
+          chmod 0755 luci-app-softethervpn/root/etc/init.d/luci_softethervpnserver
           
       - name: Building packages
         uses: openwrt/gh-action-sdk@main
