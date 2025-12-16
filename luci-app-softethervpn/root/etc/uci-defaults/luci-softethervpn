@@ -1,0 +1,18 @@
+#!/bin/sh
+
+uci -q batch <<-EOF >/dev/null
+	delete ucitrack.@softethervpn[-1]
+	add ucitrack softethervpn
+	set ucitrack.@softethervpn[-1].init=luci_softethervpnserver
+	commit ucitrack
+EOF
+
+/etc/init.d/softethervpnbridge disable
+/etc/init.d/softethervpnbridge stop >/dev/null 2>&1
+/etc/init.d/softethervpnclient disable
+/etc/init.d/softethervpnclient stop >/dev/null 2>&1
+/etc/init.d/softethervpnserver disable
+/etc/init.d/softethervpnserver stop >/dev/null 2>&1
+
+rm -f /tmp/luci-indexcache
+exit 0

@@ -1,0 +1,167 @@
+#!/bin/sh /etc/rc.common
+
+# 修改20250611 by superzjg@qq.com
+
+START=99
+USE_PROCD=1
+runDir=/tmp/softethervpn
+binDir=/usr/libexec/softethervpn
+
+get_config()
+{
+	config_get_bool enable $1 enable 0
+	config_get_bool foreground $1 foreground 0
+	config_get_bool config_fix $1 config_fix 0
+	config_get AutoSaveConfigSpan $1 AutoSaveConfigSpan
+	config_get DisableJsonRpcWebApi $1 DisableJsonRpcWebApi
+	config_get lang $1 lang
+	
+	#防火墙参数
+	config_get set_firewall $1 set_firewall
+	config_get udp_ports $1 udp_ports
+	config_get tcp_ports $1 tcp_ports
+	
+	#TMP模式选项
+	config_get_bool config_tmp_mode $1 config_tmp_mode 0
+	config_get backup_conf_unit $1 backup_conf_unit
+	config_get backup_conf_time $1 backup_conf_time
+	config_get backup_conf_time2 $1 backup_conf_time2
+}
+add_firewall() {
+	[ "$set_firewall" == "no" ] && return 0
+	local mark1=1
+	local mark2=1
+	if [ -n "$tcp_ports" ]; then
+		if [ "$set_firewall" == "check" ] && [ "$(uci -q get firewall.softether_t_auto.proto)" == "tcp" ];then
+			[ "$tcp_ports" == "$(uci -q get firewall.softether_t_auto.dest_port)" ] && mark1=0
+		fi
+		if [ "$mark1" == "1" ]; then
+			uci -q delete firewall.softether_t_auto
+			uci set firewall.softether_t_auto=rule
+			uci set firewall.softether_t_auto.name="softether_t_auto"
+			uci set firewall.softether_t_auto.target="ACCEPT"
+			uci set firewall.softether_t_auto.src="wan"
+			uci set firewall.softether_t_auto.proto="tcp"
+			uci set firewall.softether_t_auto.dest_port="$tcp_ports"
+			uci set firewall.softether_t_auto.enabled="1"
+		fi
+	fi
+	if [ -n "$udp_ports" ]; then
+		if [ "$set_firewall" == "check" ] && [ "$(uci -q get firewall.softether_u_auto.proto)" == "udp" ];then
+			[ "$udp_ports" == "$(uci -q get firewall.softether_u_auto.dest_port)" ] && mark2=0
+		fi
+		if [ "$mark2" == "1" ]; then
+			uci -q delete firewall.softether_u_auto
+			uci set firewall.softether_u_auto=rule
+			uci set firewall.softether_u_auto.name="softether_u_auto"
+			uci set firewall.softether_u_auto.target="ACCEPT"
+			uci set firewall.softether_u_auto.src="wan"
+			uci set firewall.softether_u_auto.proto="udp"
+			uci set firewall.softether_u_auto.dest_port="$udp_ports"
+			uci set firewall.softether_u_auto.enabled="1"
+		fi
+	fi
+	[ "$mark1" == "0" ] && [ "$mark2" == "0" ] && return 0
+	uci commit firewall
+	/etc/init.d/firewall reload >/dev/null 2>&1
+}
+del_firewall() {
+	if [ "$set_firewall" == "force" ]; then
+		local A=$(uci -q show firewall.softether_t_auto)
+		local B=$(uci -q show firewall.softether_u_auto)
+		[ -n "$A" ] && uci -q delete firewall.softether_t_auto
+		[ -n "$B" ] && uci -q delete firewall.softether_u_auto
+		if [ -n "$A" ] || [ -n "$B" ]; then
+			uci commit firewall
+			/etc/init.d/firewall reload >/dev/null 2>&1
+		fi	
+	fi
+}
+# 配置文件TMP模式
+do_conf_tmp() {
+	local action=$1
+	local CONF=$binDir/vpn_server.config
+	local TEMP=$runDir/vpn_server.config
+	local CRON=/etc/crontabs/root
+
+	if [ "$action" == "start" ];then
+		if [ "$config_tmp_mode" -eq 1 ];then
+			[ -f "$CONF" ] && cp -f $CONF $TEMP || rm -f $TEMP
+			[ -z "$backup_conf_unit" ] && return 0
+			[ -s "$CRON" ] || mcronrst=1
+			[ -n "$(grep -w 'By_softetherVPN' $CRON)" ] && sed -i '/By_softetherVPN/d' $CRON 2>/dev/null
+			[ "$backup_conf_unit" == "hour" ] && echo "00 */${backup_conf_time} * * * pidof vpnserver >/dev/null && [ ! -L "$TEMP" ] && cp -f $TEMP $binDir/  # By_softetherVPN" >>$CRON
+			[ "$backup_conf_unit" == "day" ] && echo "00 00 */${backup_conf_time2} * * pidof vpnserver >/dev/null && [ ! -L "$TEMP" ] && cp -f $TEMP $binDir/  # By_softetherVPN" >>$CRON
+			[ "$mcronrst" == "1" ] && /etc/init.d/cron restart
+		fi
+	elif [ "$action" == "stop" ];then
+		# 恢复配置至闪存
+		[ -L "$TEMP" ] || mv -f $TEMP $CONF
+		[ -n "$(grep -w 'By_softetherVPN' $CRON)" ] && sed -i '/By_softetherVPN/d' $CRON 2>/dev/null
+	fi
+}
+
+start_service() {
+	config_load softethervpn
+	config_foreach get_config softether
+	[ $enable -ne 1 ] && return 0
+	
+	[ -x "$binDir/vpnserver" ] || { chmod +x $binDir/vpnserver; chmod +x $binDir/vpncmd; }
+	[ -d "$runDir" ] || mkdir -p -m 0775 $runDir
+	[ -L "$runDir/hamcore.se2" ] || ln -sf $binDir/hamcore.se2 $runDir/
+	[ -L "$runDir/vpnserver" ] || ln -sf $binDir/vpnserver $runDir/
+	[ -L "$runDir/vpn_server.config" ] || ln -sf $binDir/vpn_server.config $runDir/
+	[ -L "$runDir/lang.config" ] || ln -sf $binDir/lang.config $runDir/
+	[ -L "$runDir/vpncmd"  ] || ln -sf $binDir/vpncmd $runDir/
+
+	do_conf_tmp start
+
+	logger -t 'softethervpn' "Starting softether vpnserver service." 
+	
+	#后台模式运行时，procd无法关闭服务，故指定stop操作并放弃respawn
+	procd_open_instance
+	procd_set_param env LANG=en_US.UTF-8
+	if [ $foreground -ne 1 ];then
+		procd_set_param command $runDir/vpnserver start
+	else
+		procd_set_param command $runDir/vpnserver start --foreground
+	fi
+#	procd_set_param respawn
+	procd_close_instance
+	
+	add_firewall
+}
+stop_service() {
+	config_load softethervpn
+	config_foreach get_config softether
+	logger -t 'softethervpn' "Stopping softether vpnserver service." 
+	pid=$(pidof vpnserver)
+	[ -n "$pid" ] && {
+		$runDir/vpnserver stop
+		[ "$?" != "0" ] && kill -9 $pid 2>/dev/null
+	}
+
+	do_conf_tmp stop
+
+	del_firewall
+	
+	if [ "$config_fix" == "1" ]; then
+		[ -n "$lang" ] && [ -z "$(tail -n 3 $binDir/lang.config |grep -w $lang)" ] && echo $lang >$binDir/lang.config
+		[ -n "$AutoSaveConfigSpan" ] && {
+			val=`grep AutoSaveConfigSpan $binDir/vpn_server.config |awk '{print $3}'`
+			[ -n "$val" ] && [ "$val" != "$AutoSaveConfigSpan" ] && sed -i "s/uint AutoSaveConfigSpan $val/uint AutoSaveConfigSpan $AutoSaveConfigSpan/g" $binDir/vpn_server.config
+		}
+		[ -n "$DisableJsonRpcWebApi" ] && {
+			val=`grep DisableJsonRpcWebApi $binDir/vpn_server.config |awk '{print $3}'`
+			[ -n "$val" ] && [ "$val" != "$DisableJsonRpcWebApi" ] && sed -i "s/bool DisableJsonRpcWebApi $val/bool DisableJsonRpcWebApi $DisableJsonRpcWebApi/g" $binDir/vpn_server.config
+		}
+		uci set softethervpn.@softether[0].config_fix=0
+		uci commit softethervpn
+	fi
+}
+reload_service() {
+    restart
+}
+service_triggers() {
+	procd_add_reload_trigger "softethervpn"
+}
