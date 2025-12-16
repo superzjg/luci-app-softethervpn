@@ -87,7 +87,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-softethervpn-${{ matrix.arch }}-${{ matrix.sdk }}
-          path: bin/packages/${{ matrix.arch }}/packages_ci/
+          path: |
+            bin/packages/${{ matrix.arch }}/packages_ci/*.ipk
+            bin/packages/${{ matrix.arch }}/packages_ci/*.apk
 
       - name: Create compress files
         run: |
@@ -114,6 +116,8 @@ jobs:
              ${{ github.event.inputs.text }}
            
             tag_name: ${{ env.TAG }}
-            files: luci-app-softethervpn-${{ env.TAG }}-${{ matrix.sdk }}.ipk luci-app-softethervpn-${{ env.TAG }}-${{ matrix.sdk }}.apk
+            files: |
+              *.ipk 
+              *.apk
             
  
