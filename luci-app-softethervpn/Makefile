@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-PKG_VERSION:=20250629
+PKG_VERSION:=20250630
 PKG_RELEASE:=1
 PKG_NAME:=luci-app-softethervpn
 
