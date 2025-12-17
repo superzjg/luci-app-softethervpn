@@ -99,16 +99,13 @@ jobs:
         run: |
           sudo timedatectl set-timezone "Asia/Shanghai"
           echo "build_time=$(TZ=UTC-8 date '+%Y年%m月%d日%H:%M:%S' | jq -sRr @uri)" >> $GITHUB_ENV
-          # 不再进行 zip 打包，只需将编译好的包文件复制到工作空间根目录，方便后续发布步骤使用
-          # 使用 find 命令可以更可靠地找到所有 ipk/apk 文件
-          find bin/packages -name "*.ipk" -o -name "*.apk" | xargs -I {} cp {} .
-          
-          # 在 Prepare for Release 步骤中，可以这样重命名文件：
-          # find bin/packages -name "*.ipk" -o -name "*.apk" | while read file; do
-          # cp "$file" "./${{ matrix.arch }}-${{ matrix.sdk }}-$(basename $file)"
-          # done
-          # 创建一个tar归档（不压缩gzip），保持目录结构
-          # tar -cf luci-app-softethervpn-${{ env.TAG }}-${{ matrix.arch }}-${{ matrix.sdk }}.tar -C bin/packages/${{ matrix.arch }}/ packages_ci/
+          # 进入编译输出目录
+          cd bin/packages/${{ matrix.arch }}/packages_ci
+          # 关键：使用模式匹配，仅复制目标包的文件
+          # 此模式匹配所有以 "easytier" 或 "luci-app-easytier" 开头的 .ipk 或 .apk 文件
+          cp -v *softethervpn*.{ipk,apk} $GITHUB_WORKSPACE/ || true
+          # 返回工作空间根目录
+          cd $GITHUB_WORKSPACE
 
       - name: Release
         if: ${{ github.event.inputs.tag != '' }}
@@ -129,7 +126,7 @@ jobs:
             tag_name: ${{ env.TAG }}
             # 直接发布所有找到的 .ipk 和 .apk 文件
             files: |
-              *.ipk
-              *.apk
+              *softethervpn*.ipk
+              *softethervpn*.apk
               
  
