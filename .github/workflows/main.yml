@@ -91,61 +91,62 @@ jobs:
             bin/packages/${{ matrix.arch }}/packages_ci/*.ipk
             bin/packages/${{ matrix.arch }}/packages_ci/*.apk
 
-      # - name: Create compress files
-      #   run: |
-      #     sudo timedatectl set-timezone "Asia/Shanghai"
-      #     echo "build_time=$(TZ=UTC-8 date '+%Y年%m月%d日%H:%M:%S' | jq -sRr @uri)" >> $GITHUB_ENV
-      #     #tar -zcvf luci-app-frp-${{ matrix.sdk }}-${{ matrix.arch }}.tar.gz -C bin/packages/${{ matrix.arch }}/ packages_ci
-      #     # zip -j luci-app-frp-${{ env.TAG }}-${{ matrix.arch }}-${{ matrix.sdk }}.zip bin/packages/${{ matrix.arch }}/packages_ci/*
-      #     # zip -j luci-app-frp-${{ env.TAG }}-${{ matrix.sdk }}.zip bin/packages/${{ matrix.arch }}/packages_ci/*
-
-      # - name: Release
-      #   if: ${{ github.event.inputs.tag != '' }}
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #       token: ${{ secrets.GITHUB_TOKEN }}
-      #       body: |
-
-      #        > ### ![](https://img.shields.io/badge/%E7%BC%96%E8%AF%91%E6%97%B6%E9%97%B4-${{ env.build_time }}-easytier?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.TAG }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
-
-      #        - 注意：不包含二进制可执行文件.
-             
-      #        - **`*.apk` 是OpenWrt新版的APK包** 对于apk包跳过证书安装命令
-      #        `apk add --allow-untrusted luci-app-frpc.apk`
-
-      #        ${{ github.event.inputs.text }}
-           
-      #       tag_name: ${{ env.TAG }}
-      #       files: |
-      #         *.ipk 
-      #         *.apk
-            
-       - name: Create compress files
+      - name: Create compress files
         run: |
           sudo timedatectl set-timezone "Asia/Shanghai"
           echo "build_time=$(TZ=UTC-8 date '+%Y年%m月%d日%H:%M:%S' | jq -sRr @uri)" >> $GITHUB_ENV
-          # 确保在根目录操作
-          cd $GITHUB_WORKSPACE
-          # 找到所有编译出的包文件，并将其复制到当前目录（根目录）
           find /bin/packages/${{ matrix.arch }}/packages_ci/ -name "*.ipk" -o -name "*.apk" | xargs -I {} cp {} .
-          # 可选：也可以创建一个压缩包
-          # tar -zcvf all_packages.tar.gz /bin/packages/${{ matrix.arch }}/packages_ci/
-          
+          #tar -zcvf luci-app-frp-${{ matrix.sdk }}-${{ matrix.arch }}.tar.gz -C bin/packages/${{ matrix.arch }}/ packages_ci
+          # zip -j luci-app-frp-${{ env.TAG }}-${{ matrix.arch }}-${{ matrix.sdk }}.zip bin/packages/${{ matrix.arch }}/packages_ci/*
+          # zip -j luci-app-frp-${{ env.TAG }}-${{ matrix.sdk }}.zip bin/packages/${{ matrix.arch }}/packages_ci/*
+
       - name: Release
         if: ${{ github.event.inputs.tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
             token: ${{ secrets.GITHUB_TOKEN }}
             body: |
+
              > ### ![](https://img.shields.io/badge/%E7%BC%96%E8%AF%91%E6%97%B6%E9%97%B4-${{ env.build_time }}-easytier?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.TAG }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
+
              - 注意：不包含二进制可执行文件.
+             
              - **`*.apk` 是OpenWrt新版的APK包** 对于apk包跳过证书安装命令
-             `apk add --allow-untrusted luci-app-softethervpn.apk`
+             `apk add --allow-untrusted luci-app-frpc.apk`
+
              ${{ github.event.inputs.text }}
+           
             tag_name: ${{ env.TAG }}
-            # 发布复制到根目录的所有ipk和apk文件
             files: |
-              *.ipk
+              *.ipk 
               *.apk
-            # 你也可以发布一个压缩包
-            # files: all_packages.tar.gz
+            
+      #  - name: Create compress files
+      #   run: |
+      #     sudo timedatectl set-timezone "Asia/Shanghai"
+      #     echo "build_time=$(TZ=UTC-8 date '+%Y年%m月%d日%H:%M:%S' | jq -sRr @uri)" >> $GITHUB_ENV
+      #     # 确保在根目录操作
+      #     cd $GITHUB_WORKSPACE
+      #     # 找到所有编译出的包文件，并将其复制到当前目录（根目录）
+      #     find /bin/packages/${{ matrix.arch }}/packages_ci/ -name "*.ipk" -o -name "*.apk" | xargs -I {} cp {} .
+      #     # 可选：也可以创建一个压缩包
+      #     # tar -zcvf all_packages.tar.gz /bin/packages/${{ matrix.arch }}/packages_ci/
+          
+      # - name: Release
+      #   if: ${{ github.event.inputs.tag != '' }}
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #       token: ${{ secrets.GITHUB_TOKEN }}
+      #       body: |
+      #        > ### ![](https://img.shields.io/badge/%E7%BC%96%E8%AF%91%E6%97%B6%E9%97%B4-${{ env.build_time }}-easytier?logo=github&labelColor=%E9%A1%BB)![](https://img.shields.io/github/downloads/${{ github.repository }}/${{ env.TAG }}/total?label=%E4%B8%8B%E8%BD%BD%E6%AC%A1%E6%95%B0&logo=github)
+      #        - 注意：不包含二进制可执行文件.
+      #        - **`*.apk` 是OpenWrt新版的APK包** 对于apk包跳过证书安装命令
+      #        `apk add --allow-untrusted luci-app-softethervpn.apk`
+      #        ${{ github.event.inputs.text }}
+      #       tag_name: ${{ env.TAG }}
+      #       # 发布复制到根目录的所有ipk和apk文件
+      #       files: |
+      #         *.ipk
+      #         *.apk
+      #       # 你也可以发布一个压缩包
+      #       # files: all_packages.tar.gz
