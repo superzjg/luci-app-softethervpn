@@ -127,9 +127,9 @@ jobs:
           # 确保在根目录操作
           cd $GITHUB_WORKSPACE
           # 找到所有编译出的包文件，并将其复制到当前目录（根目录）
-          find bin/packages -name "*.ipk" -o -name "*.apk" | xargs -I {} cp {} .
+          find /bin/packages/${{ matrix.arch }}/packages_ci/ -name "*.ipk" -o -name "*.apk" | xargs -I {} cp {} .
           # 可选：也可以创建一个压缩包
-          # tar -zcvf all_packages.tar.gz bin/packages/${{ matrix.arch }}/packages_ci/
+          # tar -zcvf all_packages.tar.gz /bin/packages/${{ matrix.arch }}/packages_ci/
           
       - name: Release
         if: ${{ github.event.inputs.tag != '' }}
