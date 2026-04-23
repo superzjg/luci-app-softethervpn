@@ -57,10 +57,6 @@ jobs:
           - 22.03.7
           - SNAPSHOT
 
-      # - name: 强制设置脚本权限
-      #   run: |
-      #     chmod 0755 luci-app-softethervpn/root/etc/init.d/luci_softethervpnserver
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,7 +75,10 @@ jobs:
       #     #!/bin/sh
       #     exit 0
       #     EOF
-          
+      - name: 强制设置脚本权限
+         run: |
+           chmod 0755 luci-app-softethervpn/root/etc/init.d/luci_softethervpnserver
+
       - name: Building packages
         uses: openwrt/gh-action-sdk@main
         env:
