@@ -76,7 +76,7 @@ jobs:
       #     exit 0
       #     EOF
       - name: 强制设置脚本权限
-         run: |
+        run: |
            chmod 0755 luci-app-softethervpn/root/etc/init.d/luci_softethervpnserver
 
       - name: Building packages
