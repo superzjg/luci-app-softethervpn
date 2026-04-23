@@ -1,12 +1,12 @@
 include $(TOPDIR)/rules.mk
 
-PKG_VERSION:=20250630
+PKG_VERSION:=20260423
 PKG_RELEASE:=1
 PKG_NAME:=luci-app-softethervpn
 
 # 高版本24.10.4的sdk会增加依赖luci-lua-runtime导致低版本系统装不上ipk，建议22.03.7
 LUCI_TITLE:=LuCI support for SoftetherVPN
-LUCI_DEPENDS:=+libc
+LUCI_DEPENDS:=+libc +luci-compat
 LUCI_PKGARCH:=all
 
 define Package/$(PKG_NAME)/conffiles
